@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.8](https://github.com/Joakker/bevy_mod_scripting/compare/bevy_mod_scripting_core-v0.9.7...bevy_mod_scripting_core-v0.9.8) - 2025-02-25
+
+### Added
+
+- Allow trailing comma in callback_labels. (#325)
+
 ## [0.9.7](https://github.com/makspll/bevy_mod_scripting/compare/bevy_mod_scripting_core-v0.9.6...bevy_mod_scripting_core-v0.9.7) - 2025-02-23
 
 ### Added
