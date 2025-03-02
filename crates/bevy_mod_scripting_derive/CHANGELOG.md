@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.10](https://github.com/Joakker/bevy_mod_scripting/compare/bevy_mod_scripting_derive-v0.9.9...bevy_mod_scripting_derive-v0.9.10) - 2025-03-02
+
+### Fixed
+
+- *(derive)* Call `type_info()` method correctly in `#[derive(TypedThrough)]` expansion
+- Generate IntoScript implementation with the correct path
+
 ## [0.9.8](https://github.com/makspll/bevy_mod_scripting/compare/bevy_mod_scripting_derive-v0.9.7...bevy_mod_scripting_derive-v0.9.8) - 2025-02-25
 
 ### Fixed
