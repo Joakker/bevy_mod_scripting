@@ -10,8 +10,8 @@ use asset::{
 use bevy::prelude::*;
 use bindings::{
     function::script_function::AppScriptFunctionRegistry, garbage_collector,
-    script_value::ScriptValue, AppReflectAllocator, ReflectAllocator, ReflectReference,
-    ScriptTypeRegistration,
+    schedule::AppScheduleRegistry, script_value::ScriptValue, AppReflectAllocator,
+    ReflectAllocator, ReflectReference, ScriptTypeRegistration,
 };
 use commands::{AddStaticScript, RemoveStaticScript};
 use context::{
@@ -24,8 +24,6 @@ use handler::{CallbackSettings, HandlerFn};
 use runtime::{initialize_runtime, Runtime, RuntimeContainer, RuntimeInitializer, RuntimeSettings};
 use script::{ScriptId, Scripts, StaticScripts};
 
-mod extractors;
-
 pub mod asset;
 pub mod bindings;
 pub mod commands;
@@ -33,6 +31,7 @@ pub mod context;
 pub mod docgen;
 pub mod error;
 pub mod event;
+pub mod extractors;
 pub mod handler;
 pub mod reflection_extensions;
 pub mod runtime;
@@ -96,13 +95,28 @@ pub struct ScriptingPlugin<P: IntoScriptPluginParams> {
     pub supported_extensions: &'static [&'static str],
 }
 
+impl<P: IntoScriptPluginParams> Default for ScriptingPlugin<P> {
+    fn default() -> Self {
+        Self {
+            runtime_settings: Default::default(),
+            callback_handler: CallbackSettings::<P>::default().callback_handler,
+            context_builder: Default::default(),
+            context_assigner: Default::default(),
+            language_mapper: Default::default(),
+            context_initializers: Default::default(),
+            context_pre_handling_initializers: Default::default(),
+            supported_extensions: Default::default(),
+        }
+    }
+}
+
 impl<P: IntoScriptPluginParams> Plugin for ScriptingPlugin<P> {
     fn build(&self, app: &mut bevy::prelude::App) {
         app.insert_resource(self.runtime_settings.clone())
-            .insert_non_send_resource::<RuntimeContainer<P>>(RuntimeContainer {
+            .insert_resource::<RuntimeContainer<P>>(RuntimeContainer {
                 runtime: P::build_runtime(),
             })
-            .init_non_send_resource::<ScriptContexts<P>>()
+            .init_resource::<ScriptContexts<P>>()
             .insert_resource::<CallbackSettings<P>>(CallbackSettings {
                 callback_handler: self.callback_handler,
             })
@@ -183,8 +197,8 @@ pub trait ConfigureScriptPlugin {
     /// Switch the context assigning strategy to a global context assigner.
     ///
     /// This means that all scripts will share the same context. This is useful for when you want to share data between scripts easilly.
-    /// Be careful however as this also means that scripts can interfere with each other in unexpected ways!.
-    fn enable_context_sharing(self);
+    /// Be careful however as this also means that scripts can interfere with each other in unexpected ways! Including overwriting each other's handlers.
+    fn enable_context_sharing(self) -> Self;
 }
 
 impl<P: IntoScriptPluginParams + AsMut<ScriptingPlugin<P>>> ConfigureScriptPlugin for P {
@@ -209,8 +223,9 @@ impl<P: IntoScriptPluginParams + AsMut<ScriptingPlugin<P>>> ConfigureScriptPlugi
         self
     }
 
-    fn enable_context_sharing(mut self) {
+    fn enable_context_sharing(mut self) -> Self {
         self.as_mut().context_assigner = ContextAssigner::new_global_context_assigner();
+        self
     }
 }
 
@@ -274,7 +289,8 @@ fn once_per_app_init(app: &mut App) {
         .init_resource::<Scripts>()
         .init_resource::<StaticScripts>()
         .init_asset::<ScriptAsset>()
-        .init_resource::<AppScriptFunctionRegistry>();
+        .init_resource::<AppScriptFunctionRegistry>()
+        .insert_resource(AppScheduleRegistry::new());
 
     app.add_systems(
         PostUpdate,

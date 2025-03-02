@@ -1,7 +1,10 @@
 use std::alloc::Layout;
+use std::collections::HashMap;
 
 use bevy::asset::AssetPlugin;
+use bevy::diagnostic::DiagnosticsPlugin;
 use bevy::ecs::{component::*, world::World};
+use bevy::log::LogPlugin;
 use bevy::prelude::*;
 use bevy::reflect::*;
 
@@ -124,6 +127,7 @@ pub struct TestResourceWithVariousFields {
     pub float: f32,
     pub bool: bool,
     pub vec_usize: Vec<usize>,
+    pub string_map: HashMap<String, String>,
 }
 
 impl TestResourceWithVariousFields {
@@ -135,7 +139,21 @@ impl TestResourceWithVariousFields {
             float: 69.0,
             bool: true,
             vec_usize: vec![1, 2, 3, 4, 5],
+            string_map: vec![("foo", "bar"), ("zoo", "zed")]
+                .into_iter()
+                .map(|(a, b)| (a.to_owned(), b.to_owned()))
+                .collect(),
         }
+    }
+}
+
+#[derive(Component, Reflect, PartialEq, Eq, Debug, Default)]
+#[reflect(Component, Default)]
+pub struct UnitStruct;
+
+impl UnitStruct {
+    pub fn init() -> Self {
+        Self
     }
 }
 
@@ -256,14 +274,15 @@ impl_test_component_ids!(
         CompWithDefault => 2,
         CompWithDefaultAndComponentData => 3,
         CompWithFromWorldAndComponentData => 4,
-        SimpleStruct => 5,
-        SimpleTupleStruct => 6,
-        SimpleEnum => 7,
+        UnitStruct => 5,
+        SimpleStruct => 6,
+        SimpleTupleStruct => 7,
+        SimpleEnum => 8,
     ],
     [
-        TestResource => 8,
-        ResourceWithDefault => 9,
-        TestResourceWithVariousFields => 10,
+        TestResource => 9,
+        ResourceWithDefault => 10,
+        TestResourceWithVariousFields => 11,
     ]
 );
 
@@ -306,7 +325,16 @@ pub fn setup_integration_test<F: FnOnce(&mut World, &mut TypeRegistry)>(init: F)
     // first setup all normal test components and resources
     let mut app = setup_app(init);
 
-    app.add_plugins((MinimalPlugins, AssetPlugin::default(), HierarchyPlugin));
+    app.add_plugins((
+        MinimalPlugins,
+        AssetPlugin::default(),
+        HierarchyPlugin,
+        DiagnosticsPlugin,
+        LogPlugin {
+            filter: "bevy_mod_scripting_core=debug".to_string(),
+            ..Default::default()
+        },
+    ));
     app
 }
 
